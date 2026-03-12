@@ -1,13 +1,13 @@
 ---
-title: Features
+title: Feature List
 nav_order: 1
 ---
 
 List of features (that need documenting)
 
-* Load assets from custom paths for CustomModel classes
+* [CustomModel classes for content additions]({% link docs/models/index.md %})
 * Automatic ID prefixing of classes inheriting from the provided CustomModel classes
-* GeneratedNodePool - add to NodePool nodes generated through code
+* [GeneratedNodePool - add nodes generated through code to NodePool]({% link docs/utilities/pooling.md %})
 * PoolAttribute - apply to a class inheriting from CustomCard/Potion/RelicModel to add it to a pool
 * SpireField (ConditionalWeakTable wrapper)
 * Custom Enums (and keywords)
