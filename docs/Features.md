@@ -3,14 +3,13 @@ title: Feature List
 nav_order: 1
 ---
 
-List of features (that need documenting)
+This is not a full list, just notable things.
 
 * [CustomModel classes for content additions]({% link docs/models/index.md %})
-* Automatic ID prefixing of classes inheriting from the provided CustomModel classes
+* Automatic ID prefixing of models that inherit ICustomModel (or any CustomModel class)
+* [Custom Enums (and keywords)]({% link docs/utilities/enums.md %})
 * [GeneratedNodePool - add nodes generated through code to NodePool]({% link docs/utilities/pooling.md %})
-* PoolAttribute - apply to a class inheriting from CustomCard/Potion/RelicModel to add it to a pool
 * SpireField (ConditionalWeakTable wrapper)
-* Custom Enums (and keywords)
 * Dynamic Var localization
 * Async method patching utility
 * Persist

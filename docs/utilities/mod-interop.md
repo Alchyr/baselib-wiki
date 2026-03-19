@@ -28,6 +28,8 @@ Methods, fields, and properties need the name of the type that they are defined 
 
 Fields and properties are both accessed by defining properties. Methods and properties defined directly in the interop class must be static.
 
+ModInterop generation occurs after all mod initialization and before the ModelDb is initalized.
+
 ```c#
 [ModInterop("OtherModId", "OtherMod.Namespace.Here")]
 public static class Interop {
