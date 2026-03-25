@@ -30,7 +30,11 @@ public override Node2D? CreateCustomSprite()
 
 ## Sound Effects
 
-Override `CustomPassiveSfx`, `CustomEvokeSfx`, and `CustomChannelSfx` to provide FMOD event paths for custom sounds. If not overridden, the debug audio system will look for `.mp3` files named `{id_lowercase}_passive.mp3`, `{id_lowercase}_evoke.mp3`, and `{id_lowercase}_channel.mp3`.
+Override `CustomPassiveSfx`, `CustomEvokeSfx`, and `CustomChannelSfx` to provide sound paths for your orb. The game's audio system passes these strings to an internal GDScript audio proxy. In practice, vanilla orbs use FMOD event paths (e.g. `"event:/sfx/characters/defect/defect_lightning_passive"`), but modders cannot ship FMOD banks.
+
+Leave these as `null` to use the debug audio fallback, which automatically looks for `.mp3` files at `res://debug_audio/{id_lowercase}_passive.mp3`, `res://debug_audio/{id_lowercase}_evoke.mp3`, and `res://debug_audio/{id_lowercase}_channel.mp3`. In practice, most mods utilize existing vanilla orb sounds, or leave audio as `null` and accept the missing resource warning.
+
+Note: Proper mod audio support is actively being worked on in BaseLib.
 
 ## Random Orb Pool
 
@@ -41,59 +45,80 @@ public override bool IncludeInRandomPool => true;
 
 ## Example
 ```c#
-public sealed class FireOrb : CustomOrbModel
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Godot;
+using BaseLib.Abstracts;
+using MegaCrit.Sts2.Core.Assets;
+using MegaCrit.Sts2.Core.Bindings.MegaSpine;
+using MegaCrit.Sts2.Core.Commands;
+using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Models.Powers;
+using MegaCrit.Sts2.Core.ValueProps;
+
+namespace MyMod;
+
+
+public sealed class PoisonOrb : CustomOrbModel
 {
-    public override Color DarkenedColor => new Color("996510");
-    public override string? CustomIconPath => "res://MyMod/images/orbs/fire_orb.png";
+    public override Color DarkenedColor => new Color("2d6e2d");
+    public override string? CustomIconPath => "res://MyMod/images/orbs/poison_orb.png";
     public override bool IncludeInRandomPool => true;
 
-    public override decimal PassiveVal => ModifyOrbValue(2m);
-    public override decimal EvokeVal => ModifyOrbValue(4m);
+    // Reuse Dark Orb sounds - practical use of overrides
+    public override string? CustomPassiveSfx => "event:/sfx/characters/defect/defect_dark_passive";
+    public override string? CustomEvokeSfx => "event:/sfx/characters/defect/defect_dark_evoke";
+    public override string? CustomChannelSfx => "event:/sfx/characters/defect/defect_dark_channel";
+
+    public override decimal PassiveVal => ModifyOrbValue(3m);
+    public override decimal EvokeVal => ModifyOrbValue(6m);
 
     public override Node2D? CreateCustomSprite()
     {
         var container = new Node2D();
-        // back layer
-        string lightningPath = SceneHelper.GetScenePath("orbs/orb_visuals/lightning_orb");
-        Node2D lightning = PreloadManager.Cache.GetScene(lightningPath)
+        // back layer: dark orb (green tint)
+        string darkPath = SceneHelper.GetScenePath("orbs/orb_visuals/dark_orb");
+        Node2D dark = PreloadManager.Cache.GetScene(darkPath)
             .Instantiate<Node2D>(PackedScene.GenEditState.Disabled);
-        new MegaSprite(lightning.GetNode("SpineSkeleton"))
+        new MegaSprite(dark.GetNode("SpineSkeleton"))
             .GetAnimationState().SetAnimation("idle_loop");
-        lightning.Modulate = new Color(0.8f, 0.1f, 0.0f, 1.0f);
-        lightning.Scale = new Vector2(1.1f, 1.1f);
-        container.AddChild(lightning);
-        // front layer
+        dark.Modulate = new Color(0.1f, 0.5f, 0.1f, 1.0f);
+        dark.Scale = new Vector2(1.1f, 1.1f);
+        container.AddChild(dark);
+        // front layer: glass orb (bright green core)
         string glassPath = SceneHelper.GetScenePath("orbs/orb_visuals/glass_orb");
         Node2D glass = PreloadManager.Cache.GetScene(glassPath)
             .Instantiate<Node2D>(PackedScene.GenEditState.Disabled);
         new MegaSprite(glass.GetNode("SpineSkeleton"))
             .GetAnimationState().SetAnimation("idle_loop");
-        glass.Modulate = new Color(0.95f, 0.75f, 0.2f, 1.0f);
+        glass.Modulate = new Color(0.3f, 0.9f, 0.3f, 1.0f);
         container.AddChild(glass);
         return container;
     }
 
+    // Trigger passive at end of turn - standard pattern for all orbs
     public override async Task BeforeTurnEndOrbTrigger(PlayerChoiceContext choiceContext)
         => await Passive(choiceContext, null);
-
+    
     public override async Task Passive(PlayerChoiceContext choiceContext, Creature? target)
     {
-        Trigger();
+        Trigger(); // fires the orb pulse animation - always call this first
         var enemies = CombatState.GetOpponentsOf(Owner.Creature)
             .Where(e => e.IsHittable).ToList();
         if (enemies.Count == 0) return;
         Creature passiveTarget = target ?? Owner.RunState.Rng.CombatTargets.NextItem(enemies)!;
-        await CreatureCmd.Damage(choiceContext, new[] { passiveTarget }, PassiveVal, ValueProp.Unpowered, Owner.Creature);
-        await PowerCmd.Apply<BurnPower>(passiveTarget, PassiveVal, Owner.Creature, null);
+        await PowerCmd.Apply<PoisonPower>(passiveTarget, PassiveVal, Owner.Creature, null);
     }
-
+    
     public override async Task<IEnumerable<Creature>> Evoke(PlayerChoiceContext choiceContext)
     {
         var enemies = CombatState.GetOpponentsOf(Owner.Creature)
             .Where(e => e.IsHittable).ToList();
         if (enemies.Count == 0) return enemies;
         Creature target = Owner.RunState.Rng.CombatTargets.NextItem(enemies)!;
-        PlayEvokeSfx();
+        PlayEvokeSfx(); // call before dealing damage so sound plays with the hit
         await CreatureCmd.Damage(choiceContext, new[] { target }, EvokeVal, ValueProp.Unpowered, Owner.Creature);
         return enemies;
     }
