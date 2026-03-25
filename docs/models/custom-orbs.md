@@ -46,6 +46,7 @@ public sealed class FireOrb : CustomOrbModel
     public override Color DarkenedColor => new Color("996510");
     public override string? CustomIconPath => "res://MyMod/images/orbs/fire_orb.png";
     public override bool IncludeInRandomPool => true;
+
     public override decimal PassiveVal => ModifyOrbValue(2m);
     public override decimal EvokeVal => ModifyOrbValue(4m);
 
@@ -96,5 +97,41 @@ public sealed class FireOrb : CustomOrbModel
         await CreatureCmd.Damage(choiceContext, new[] { target }, EvokeVal, ValueProp.Unpowered, Owner.Creature);
         return enemies;
     }
+}
+```
+
+## Important Information from `OrbModel`
+
+The `OrbModel` class in the base game has some quirks worth mentioning.
+
+### Passive and Evoke Values
+
+`PassiveVal` and `EvokeVal` are used by the tooltip system to display the orb's current damage numbers. Always wrap your base values in `ModifyOrbValue()`! This applies Focus scaling automatically, the same way vanilla orbs work.
+```c#
+public override decimal PassiveVal => ModifyOrbValue(2m);
+public override decimal EvokeVal => ModifyOrbValue(4m);
+```
+
+### Passive Trigger Timing
+
+There are two hooks for orb passive triggers:
+
+- `BeforeTurnEndOrbTrigger` - fires at the end of your turn, before the flush. This is what all vanilla orbs use.
+- `AfterTurnStartOrbTrigger` - fires at the start of your turn, after drawing. Use this if you want your orb to trigger at the beginning of the turn instead.
+
+Most custom orbs should use `BeforeTurnEndOrbTrigger` and delegate to `Passive()`:
+```c#
+public override async Task BeforeTurnEndOrbTrigger(PlayerChoiceContext choiceContext)
+    => await Passive(choiceContext, null);
+```
+
+### Trigger Animation
+
+Always call `Trigger()` at the start of your `Passive()` implementation. This fires the orb's pulse animation. Without it the orb will function correctly but won't visually react when its passive activates.
+```c#
+public override async Task Passive(PlayerChoiceContext choiceContext, Creature? target)
+{
+    Trigger(); // always call this first
+    // ... your passive logic
 }
 ```
