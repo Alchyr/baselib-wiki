@@ -1,0 +1,5 @@
+﻿// Shrink the massive line-height in code blocks to look more like an IDE
+div pre,
+div code {
+  line-height: 1.0 !important;
+}

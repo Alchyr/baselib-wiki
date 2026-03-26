@@ -5,6 +5,7 @@ nav_order: 1
 
 ## List of Notable Features and Things That Still Need Documentation
 
+* [Declarative (or custom) mod configuration]({% link docs/utilities/config.md %})
 * [CustomModel classes for content additions]({% link docs/models/index.md %})
 * Automatic ID prefixing of models that inherit ICustomModel (or any CustomModel class)
 * [Custom Enums (and keywords)]({% link docs/utilities/enums.md %})
